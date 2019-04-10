@@ -25,7 +25,7 @@ import sys
 import numpy as np
 
 class RandomWeightedAverage(_Merge):
-    """Provides a (random) weighted average between real and generated image samples"""
+    """ Mélange de manière aléatoire les images fausses et vraies """
     def _merge_function(self, inputs):
         alpha = K.random_uniform((32, 1, 1, 1))
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
@@ -38,44 +38,38 @@ class WGANGP():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 100
 
-        # Following parameter and optimizer set as recommended in paper
+        # Fixer les paramètre et l'optimiseur comme recommandé dans le papier
         self.n_critic = 5
         optimizer = RMSprop(lr=0.00005)
 
-        # Build the generator and critic
+        # Création du générateur
         self.generator = self.build_generator()
         self.critic = self.build_critic()
 
-        #-------------------------------
-        # Construct Computational Graph
-        #       for the Critic
-        #-------------------------------
-
-        # Freeze generator's layers while training critic
+        # Fixer les couches du générateur pendant l'entrainement à la critique
         self.generator.trainable = False
 
-        # Image input (real sample)
+        # Image input (échantillon vrai)
         real_img = Input(shape=self.img_shape)
 
-        # Noise input
+        # Ajout de bruit
         z_disc = Input(shape=(self.latent_dim,))
-        # Generate image based of noise (fake sample)
+        # Création de l'échantillon faux
         fake_img = self.generator(z_disc)
 
-        # Discriminator determines validity of the real and fake images
+        # Le discriminateur s'entraine sur les échantillons vrais/faux
         fake = self.critic(fake_img)
         valid = self.critic(real_img)
 
-        # Construct weighted average between real and fake images
+        # Mélange entre échantillon vrai/faux
         interpolated_img = RandomWeightedAverage()([real_img, fake_img])
-        # Determine validity of weighted sample
+        # Détermine la validité de l'image interpolée
         validity_interpolated = self.critic(interpolated_img)
 
-        # Use Python partial to provide loss function with additional
-        # 'averaged_samples' argument
+        # Calcul de la fonction loss
         partial_gp_loss = partial(self.gradient_penalty_loss,
                           averaged_samples=interpolated_img)
-        partial_gp_loss.__name__ = 'gradient_penalty' # Keras requires function names
+        partial_gp_loss.__name__ = 'gradient_penalty'
 
         self.critic_model = Model(inputs=[real_img, z_disc],
                             outputs=[valid, fake, validity_interpolated])
@@ -84,41 +78,37 @@ class WGANGP():
                                               partial_gp_loss],
                                         optimizer=optimizer,
                                         loss_weights=[1, 1, 10])
-        #-------------------------------
-        # Construct Computational Graph
-        #         for Generator
-        #-------------------------------
 
-        # For the generator we freeze the critic's layers
+        # Fixer les couches de critiques pour le générateur
         self.critic.trainable = False
         self.generator.trainable = True
 
-        # Sampled noise for input to generator
+        # Bruit pour le générateur
         z_gen = Input(shape=(100,))
-        # Generate images based of noise
+        # Génération des images à partir du bruit
         img = self.generator(z_gen)
-        # Discriminator determines validity
+        # Entrainement du discriminateur
         valid = self.critic(img)
-        # Defines generator model
+        # Définition du modèle du générateur
         self.generator_model = Model(z_gen, valid)
         self.generator_model.compile(loss=self.wasserstein_loss, optimizer=optimizer)
 
 
     def gradient_penalty_loss(self, y_true, y_pred, averaged_samples):
         """
-        Computes gradient penalty based on prediction and weighted real / fake samples
+        Calcul du gradient avec les prédictions réalisées sur les échantillons vrais/faux
         """
         gradients = K.gradients(y_pred, averaged_samples)[0]
-        # compute the euclidean norm by squaring ...
+        # Norme euclidienne en prenant les carrés ...
         gradients_sqr = K.square(gradients)
-        #   ... summing over the rows ...
+        #   ... somme à travers les lignes ...
         gradients_sqr_sum = K.sum(gradients_sqr,
                                   axis=np.arange(1, len(gradients_sqr.shape)))
-        #   ... and sqrt
+        #   ... puis on prend la racine
         gradient_l2_norm = K.sqrt(gradients_sqr_sum)
-        # compute lambda * (1 - ||grad||)^2 still for each single sample
+        # Calculer lambda * (1 - ||grad||)^2 poru chaque exemple
         gradient_penalty = K.square(1 - gradient_l2_norm)
-        # return the mean as loss over all the batch samples
+        # Calcul de la moyenne du loss à travers les exemples du batch
         return K.mean(gradient_penalty)
 
 
@@ -181,48 +171,43 @@ class WGANGP():
 
     def train(self, epochs, batch_size, sample_interval=50):
 
-        # Load the dataset
+        # Chargement de la base de donnée cifar10
         (X_train, y_train), (_, _) = cifar10.load_data()
         X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
-        # Rescale -1 to 1
+        # Redimensionnement de -1 à 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
 
         if self.channels == 1:
             X_train = np.expand_dims(X_train, axis=3) # S'il y a un seul channel, il faut expand les dimensions de l'ensemble d'entraînement
 
-        # Adversarial ground truths
+        # Vérité terrain
         valid = -np.ones((batch_size, 1))
         fake =  np.ones((batch_size, 1))
-        dummy = np.zeros((batch_size, 1)) # Dummy gt for gradient penalty
+        dummy = np.zeros((batch_size, 1))
         for epoch in range(epochs):
 
             for _ in range(self.n_critic):
 
-                # ---------------------
-                #  Train Discriminator
-                # ---------------------
+                # Entrainement du Discriminant
 
-                # Select a random batch of images
+                # Selection d'un batch aléatoire
                 idx = np.random.randint(0, X_train.shape[0], batch_size)
                 imgs = X_train[idx]
-                # Sample generator input
                 noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-                # Train the critic
+                # Entrainement de la critique
                 d_loss = self.critic_model.train_on_batch([imgs, noise],
                                                                 [valid, fake, dummy])
 
-            # ---------------------
-            #  Train Generator
-            # ---------------------
+            # Entrainement du Générateur
 
             g_loss = self.generator_model.train_on_batch(noise, valid)
 
-            # Plot the progress
+            # Affichage de l'évolution des performances du modèle
             if epoch % 10 == 0:
                 print ("%d [D loss: %f] [G loss: %f]" % (epoch, d_loss[0], g_loss))
 
-            # If at save interval => save generated image samples
+            # Sauvegarde des échantillons à la fréquence sample_interval
             if epoch % sample_interval == 0:
                 self.sample_images(epoch)
 
@@ -231,7 +216,7 @@ class WGANGP():
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
         gen_imgs = self.generator.predict(noise)
 
-        # Rescale images 0 - 1
+        # Redimensionnement des images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
         fig, axs = plt.subplots(r, c)

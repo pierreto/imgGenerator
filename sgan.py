@@ -5,7 +5,7 @@
 
 from __future__ import print_function, division
 
-from keras.datasets import mnist
+from keras.datasets import cifar10
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -16,6 +16,7 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 
+import os
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -63,8 +64,8 @@ class SGAN:
 
         model = Sequential()
 
-        model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
-        model.add(Reshape((7, 7, 128)))
+        model.add(Dense(128 * 8 * 8, activation="relu", input_dim=self.latent_dim))
+        model.add(Reshape((8, 8, 128)))
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
@@ -74,7 +75,7 @@ class SGAN:
         model.add(Conv2D(64, kernel_size=3, padding="same"))
         model.add(Activation("relu"))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(1, kernel_size=3, padding="same"))
+        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
         model.add(Activation("tanh"))
 
         model.summary()
@@ -119,7 +120,7 @@ class SGAN:
 
         # Load the dataset
         (X_train, y_train), (_, _) = cifar10.load_data()
-        X_train = np.array(X_train[np.argwhere(y_train.squeese() == 5)].squeeze())
+        X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
@@ -128,6 +129,7 @@ class SGAN:
             X_train = np.expand_dims(X_train, axis=3) # S'il y a un seul channel, il faut expand les dimensions de l'ensemble d'entraînement
 
         y_train = y_train.reshape(-1, 1)
+        y_train = np.array(y_train[y_train == 6])
 
         # Class weights:
         # To balance the difference in occurences of digit class labels.
@@ -173,7 +175,8 @@ class SGAN:
             g_loss = self.combined.train_on_batch(noise, valid, class_weight=[cw1, cw2])
 
             # Plot the progress
-            print ("%d [D loss: %f, acc: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss))
+            if epoch % 10 == 0:
+                print ("%d [D loss: %f, acc: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss))
 
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
@@ -197,7 +200,12 @@ class SGAN:
                     axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/mnist_%d.png" % epoch)
+        
+        savePath = 'result/s_gan/'
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
+        
+        fig.savefig(("{0}{1}.png").format(savePath, epoch))
         plt.close()
 
     def save_model(self):
@@ -211,9 +219,9 @@ class SGAN:
             open(options['file_arch'], 'w').write(json_string)
             model.save_weights(options['file_weight'])
 
-        save(self.generator, "mnist_sgan_generator")
-        save(self.discriminator, "mnist_sgan_discriminator")
-        save(self.combined, "mnist_sgan_adversarial")
+        save(self.generator, "cifar10_sgan_generator")
+        save(self.discriminator, "cifar10_sgan_discriminator")
+        save(self.combined, "cifar10_sgan_adversarial")
 
 
 if __name__ == '__main__':

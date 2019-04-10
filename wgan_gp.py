@@ -5,6 +5,7 @@
 
 from __future__ import print_function, division
 
+from keras.datasets import cifar10
 from keras.layers.merge import _Merge
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
@@ -181,11 +182,14 @@ class WGANGP():
     def train(self, epochs, batch_size, sample_interval=50):
 
         # Load the dataset
-        (X_train, _), (_, _) = cifar10.load_data()
+        (X_train, y_train), (_, _) = cifar10.load_data()
+        X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-        X_train = np.expand_dims(X_train, axis=3)
+
+        if self.channels == 1:
+            X_train = np.expand_dims(X_train, axis=3) # S'il y a un seul channel, il faut expand les dimensions de l'ensemble d'entraînement
 
         # Adversarial ground truths
         valid = -np.ones((batch_size, 1))
@@ -215,7 +219,8 @@ class WGANGP():
             g_loss = self.generator_model.train_on_batch(noise, valid)
 
             # Plot the progress
-            print ("%d [D loss: %f] [G loss: %f]" % (epoch, d_loss[0], g_loss))
+            if epoch % 10 == 0:
+                print ("%d [D loss: %f] [G loss: %f]" % (epoch, d_loss[0], g_loss))
 
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
@@ -233,10 +238,18 @@ class WGANGP():
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                if self.channels == 1:
+                    axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                else:
+                    axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        fig.savefig("images/mnist_%d.png" % epoch)
+
+        savePath = 'result/w_gan-gp/'
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
+        
+        fig.savefig(("{0}{1}.png").format(savePath, epoch))
         plt.close()
 
 

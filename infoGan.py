@@ -12,6 +12,7 @@ import keras.backend as K
 
 import matplotlib.pyplot as plt
 
+import os
 import numpy as np
 
 class INFOGAN():
@@ -144,6 +145,7 @@ class INFOGAN():
 
         # Load the dataset
         (X_train, y_train), (_, _) = cifar10.load_data()
+        X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
         # Rescale -1 to 1
         X_train = (X_train.astype(np.float32) - 127.5) / 127.5
@@ -151,8 +153,6 @@ class INFOGAN():
         if self.channels == 1:
             X_train = np.expand_dims(X_train, axis=3) # S'il y a un seul channel, il faut expand les dimensions de l'ensemble d'entraînement
         
-        y_train = y_train.reshape(-1, 1)
-
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
@@ -196,7 +196,7 @@ class INFOGAN():
                 self.sample_images(epoch)
 
     def sample_images(self, epoch):
-        r, c = 10, 10
+        r, c = 5, 5
 
         fig, axs = plt.subplots(r, c)
         for i in range(c):
@@ -207,9 +207,9 @@ class INFOGAN():
             gen_imgs = 0.5 * gen_imgs + 0.5
             for j in range(r):
                 if self.channels == 1:
-                    axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                    axs[i,j].imshow(gen_imgs[j, :,:,0], cmap='gray')
                 else:
-                    axs[i,j].imshow(gen_imgs[cnt, :,:,:])
+                    axs[i,j].imshow(gen_imgs[j, :,:,:])
                 axs[j,i].axis('off')
 
         savePath = 'result/info_gan/'

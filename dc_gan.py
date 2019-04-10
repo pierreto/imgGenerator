@@ -117,7 +117,8 @@ class DCGAN():
     def train(self, epochs, batch_size=128, save_interval=50):
 
         # Charger les données
-        (X_train, _), (_, _) = cifar10.load_data()
+        (X_train, y_train), (_, _) = cifar10.load_data()
+        X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
         # Redimensionnement de -1 à 1
         X_train = X_train / 127.5 - 1.

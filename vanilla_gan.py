@@ -101,7 +101,8 @@ class GAN():
     def train(self, epochs, batch_size=128, sample_interval=50):
 
         # Charger les données
-        (X_train, _), (_, _) = cifar10.load_data()
+        (X_train, y_train), (_, _) = cifar10.load_data()
+        X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
         # Redimensionnement de -1 à 1
         X_train = X_train / 127.5 - 1.
@@ -123,9 +124,8 @@ class GAN():
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
 
+            # Échantillonner le bruit et générer une batch de nouvelles images
             noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-
-            # Générer une batch de nouvelles images
             gen_imgs = self.generator.predict(noise)
 
             # Entraîner le discriminateur
@@ -143,7 +143,7 @@ class GAN():
             g_loss = self.combined.train_on_batch(noise, valid)
 
             # Progression
-            if epoch % 100 == 0:
+            if epoch % 10 == 0:
                 print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
             # Selon l'intervalle de sauvegarde, on sauvegarde les images générées

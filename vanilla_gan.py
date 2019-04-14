@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 
 import os
 import sys
-
 import numpy as np
+import time
 
 # Implémentation d'un GAN avec un generateur et un discriminateur selon un perceptron multi-couche
 class GAN():
@@ -28,6 +28,10 @@ class GAN():
         self.channels = 3 # Nombre de canaux de couleur
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 100 # Taille du vecteur latent z (taille de l'entrée du générateur)
+
+        self.savePath = 'result/vanilla_gan/'
+        if not os.path.exists(self.savePath):
+            os.makedirs(self.savePath)
 
         optimizer = Adam(0.0002, 0.5) # taux d'aprentissage de 0.0002 et hyperparametre Beta1 pour l'optimisateur Adam
 
@@ -73,6 +77,10 @@ class GAN():
 
         model.summary()
 
+        # Sauvegarde du générateur dans un fichier
+        with open(self.savePath + 'generator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
         noise = Input(shape=(self.latent_dim,))
         img = model(noise)
 
@@ -91,6 +99,10 @@ class GAN():
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dense(1, activation='sigmoid'))
         model.summary()
+
+        # Sauvegarde du discriminateur dans un fichier
+        with open(self.savePath + 'discriminator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
 
         img = Input(shape=self.img_shape)
         validity = model(img)
@@ -113,6 +125,12 @@ class GAN():
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
+
+        f = open(self.savePath + "data.csv","a+")
+        f.write("Time, Epoch, DiscriminatorLoss, DiscriminatorAcc, GeneratorLoss\n")
+        f.close()
+
+        debut = time.time()
 
         for epoch in range(epochs):
 
@@ -144,7 +162,11 @@ class GAN():
 
             # Progression
             if epoch % 10 == 0:
+                delta = time.time() - debut
+                f = open(self.savePath + "data.csv","a+")
                 print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+                f.write("%.3f, %d, %f, %.2f%%, %f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss))
+                f.close()
 
             # Selon l'intervalle de sauvegarde, on sauvegarde les images générées
             if epoch % sample_interval == 0:
@@ -169,15 +191,11 @@ class GAN():
                     axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-        
-        savePath = 'result/vanilla_gan/'
-        if not os.path.exists(savePath):
-            os.makedirs(savePath)
 
-        fig.savefig(("{0}{1}.png").format(savePath, epoch))
+        fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
         plt.close()
 
 # Programme principal
 if __name__ == '__main__':
     gan = GAN()
-    gan.train(epochs=30000, batch_size=32, sample_interval=200)
+    gan.train(epochs=100000, batch_size=32, sample_interval=200) # epochs: 30000

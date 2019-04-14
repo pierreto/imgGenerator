@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 import os
 import sys
-
 import numpy as np
+import time
 
 class RandomWeightedAverage(_Merge):
     """ Mélange de manière aléatoire les images fausses et vraies """
@@ -37,6 +37,10 @@ class WGANGP():
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 100
+
+        self.savePath = 'result/w_gan-gp/'
+        if not os.path.exists(self.savePath):
+            os.makedirs(self.savePath)
 
         # Fixer les paramètre et l'optimiseur comme recommandé dans le papier
         self.n_critic = 5
@@ -134,6 +138,10 @@ class WGANGP():
 
         model.summary()
 
+        # Sauvegarde du générateur dans un fichier
+        with open(self.savePath + 'generator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
         noise = Input(shape=(self.latent_dim,))
         img = model(noise)
 
@@ -164,6 +172,10 @@ class WGANGP():
 
         model.summary()
 
+        # Sauvegarde du discriminateur dans un fichier
+        with open(self.savePath + 'discriminator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
         img = Input(shape=self.img_shape)
         validity = model(img)
 
@@ -185,6 +197,13 @@ class WGANGP():
         valid = -np.ones((batch_size, 1))
         fake =  np.ones((batch_size, 1))
         dummy = np.zeros((batch_size, 1))
+
+        f = open(self.savePath + "data.csv","a+")
+        f.write("Time, Epoch, DiscriminatorLoss, DiscriminatorAcc, GeneratorLoss\n")
+        f.close()
+
+        debut = time.time()
+
         for epoch in range(epochs):
 
             for _ in range(self.n_critic):
@@ -205,7 +224,11 @@ class WGANGP():
 
             # Affichage de l'évolution des performances du modèle
             if epoch % 10 == 0:
-                print ("%d [D loss: %f] [G loss: %f]" % (epoch, d_loss[0], g_loss))
+                delta = time.time() - debut
+                f = open(self.savePath + "data.csv","a+")
+                print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
+                f.write("%.3f, %d, %f, %.2f%%, %f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss))
+                f.close()
 
             # Sauvegarde des échantillons à la fréquence sample_interval
             if epoch % sample_interval == 0:
@@ -229,15 +252,11 @@ class WGANGP():
                     axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                 axs[i,j].axis('off')
                 cnt += 1
-
-        savePath = 'result/w_gan-gp/'
-        if not os.path.exists(savePath):
-            os.makedirs(savePath)
         
-        fig.savefig(("{0}{1}.png").format(savePath, epoch))
+        fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
         plt.close()
 
 
 if __name__ == '__main__':
     wgan = WGANGP()
-    wgan.train(epochs=30000, batch_size=32, sample_interval=100)
+    wgan.train(epochs=100000, batch_size=32, sample_interval=100) # epochs: 30000

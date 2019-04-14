@@ -18,8 +18,8 @@ import keras.backend as K
 
 import os
 import matplotlib.pyplot as plt
-
 import numpy as np
+import time
 
 # Implémentation d'un SGAN avec un generateur et un discriminateur selon une approche diviser pour régner
 class SGAN:
@@ -30,6 +30,10 @@ class SGAN:
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.num_classes = 10
         self.latent_dim = 100               # Taille du vecteur latent z (taille de l'entrée du générateur)
+
+        self.savePath = 'result/s_gan/'
+        if not os.path.exists(self.savePath):
+            os.makedirs(self.savePath)
 
         optimizer = Adam(0.0002, 0.5)       # taux d'aprentissage de 0.0002 et hyperparametre Beta1 pour l'optimisateur Adam
 
@@ -80,6 +84,10 @@ class SGAN:
 
         model.summary()
 
+        # Sauvegarde du générateur dans un fichier
+        with open(self.savePath + 'generator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
         noise = Input(shape=(self.latent_dim,))
         img = model(noise)
 
@@ -107,6 +115,10 @@ class SGAN:
         model.add(Flatten())
 
         model.summary()
+
+        # Sauvegarde du discriminateur dans un fichier
+        with open(self.savePath + 'discriminator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
 
         img = Input(shape=self.img_shape)
 
@@ -144,6 +156,12 @@ class SGAN:
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
 
+        f = open(self.savePath + "data.csv","a+")
+        f.write("Time, Epoch, DiscriminatorLoss, DiscriminatorAcc, DiscriminatorOpAcc, GeneratorLoss\n")
+        f.close()
+
+        debut = time.time()
+
         for epoch in range(epochs):
 
             # ---------------------
@@ -176,7 +194,11 @@ class SGAN:
 
             # Plot the progress
             if epoch % 10 == 0:
+                delta = time.time() - debut
+                f = open(self.savePath + "data.csv","a+")
                 print ("%d [D loss: %f, acc: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss))
+                f.write("%.3f, %d, %f, %.2f%%, %.2f%%, %f\n" % (delta, epoch, d_loss[0], 100*d_loss[3], 100*d_loss[4], g_loss))
+                f.close()
 
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
@@ -201,11 +223,7 @@ class SGAN:
                 axs[i,j].axis('off')
                 cnt += 1
         
-        savePath = 'result/s_gan/'
-        if not os.path.exists(savePath):
-            os.makedirs(savePath)
-        
-        fig.savefig(("{0}{1}.png").format(savePath, epoch))
+        fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
         plt.close()
 
     def save_model(self):
@@ -226,4 +244,4 @@ class SGAN:
 
 if __name__ == '__main__':
     sgan = SGAN()
-    sgan.train(epochs=20000, batch_size=32, sample_interval=50)
+    sgan.train(epochs=100000, batch_size=32, sample_interval=50) # epochs : 20000

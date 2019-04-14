@@ -11,9 +11,9 @@ from keras.utils import to_categorical
 import keras.backend as K
 
 import matplotlib.pyplot as plt
-
 import os
 import numpy as np
+import time
 
 class INFOGAN():
     def __init__(self):
@@ -24,6 +24,9 @@ class INFOGAN():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = 72
 
+        self.savePath = 'result/info_gan/'
+        if not os.path.exists(self.savePath):
+            os.makedirs(self.savePath)
 
         optimizer = Adam(0.0002, 0.5)
         losses = ['binary_crossentropy', self.mutual_info_loss]
@@ -85,6 +88,10 @@ class INFOGAN():
 
         model.summary()
 
+        # Sauvegarde du générateur dans un fichier
+        with open(self.savePath + 'generator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
+
         return Model(gen_input, img)
 
 
@@ -120,6 +127,10 @@ class INFOGAN():
         # Recognition
         q_net = Dense(128, activation='relu')(img_embedding)
         label = Dense(self.num_classes, activation='softmax')(q_net)
+
+        # Sauvegarde du discriminateur dans un fichier
+        with open(self.savePath + 'discriminator.txt','w+') as fh:
+            model.summary(print_fn=lambda x: fh.write(x + '\n'))
 
         # Return discriminator and recognition network
         return Model(img, validity), Model(img, label)
@@ -157,6 +168,12 @@ class INFOGAN():
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
 
+        f = open(self.savePath + "data.csv","a+")
+        f.write("Time, Epoch, DiscriminatorLoss, DiscriminatorAcc, QLoss, GeneratorLoss\n")
+        f.close()
+
+        debut = time.time()
+
         for epoch in range(epochs):
 
             # ---------------------
@@ -189,7 +206,11 @@ class INFOGAN():
 
             # Plot the progress
             if epoch % 10 == 0:
+                delta = time.time() - debut
+                f = open(self.savePath + "data.csv","a+")
                 print ("%d [D loss: %.2f, acc.: %.2f%%] [Q loss: %.2f] [G loss: %.2f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[1], g_loss[2]))
+                f.write("%.3f, %d, %.2f, %.2f%%, %.2f, %.2f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss[1], g_loss[2]))
+                f.close()
 
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
@@ -211,12 +232,8 @@ class INFOGAN():
                 else:
                     axs[i,j].imshow(gen_imgs[j, :,:,:])
                 axs[j,i].axis('off')
-
-        savePath = 'result/info_gan/'
-        if not os.path.exists(savePath):
-            os.makedirs(savePath)
                 
-        fig.savefig(("{0}{1}.png").format(savePath, epoch))
+        fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
         plt.close()
 
     def save_model(self):
@@ -236,4 +253,4 @@ class INFOGAN():
 
 if __name__ == '__main__':
     infogan = INFOGAN()
-    infogan.train(epochs=50000, batch_size=128, sample_interval=50)
+    infogan.train(epochs=100000, batch_size=128, sample_interval=50) # epochs: 50000

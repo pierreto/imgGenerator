@@ -209,7 +209,7 @@ class INFOGAN():
                 delta = time.time() - debut
                 f = open(self.savePath + "data.csv","a+")
                 print ("%d [D loss: %.2f, acc.: %.2f%%] [Q loss: %.2f] [G loss: %.2f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[1], g_loss[2]))
-                f.write("%.3f, %d, %.2f, %.2f%%, %.2f, %.2f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss[1], g_loss[2]))
+                f.write("%.3f, %d, %.2f, %.2f, %.2f, %.2f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss[1], g_loss[2]))
                 f.close()
 
             # If at save interval => save generated image samples

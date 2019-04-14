@@ -165,7 +165,7 @@ class GAN():
                 delta = time.time() - debut
                 f = open(self.savePath + "data.csv","a+")
                 print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
-                f.write("%.3f, %d, %f, %.2f%%, %f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss))
+                f.write("%.3f, %d, %f, %.2f, %f\n" % (delta, epoch, d_loss[0], 100*d_loss[1], g_loss))
                 f.close()
 
             # Selon l'intervalle de sauvegarde, on sauvegarde les images générées

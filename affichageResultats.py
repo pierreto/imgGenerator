@@ -1,27 +1,29 @@
 import numpy
 import matplotlib.pyplot as plt
-import csv
 
-#Fichier à ouvrir
+#Fichier à ouvrir (update)
 fileName = 'data.csv'
+pasMoyenne = 10
 
-#Format du subplot
-nRow = 1
-nCol = 4
+#Format du subplot (update)
+nRow = 2
+nCol = 2
 
 #Palette de couleur à conserver
-palette = ['r-', 'g-', 'b-', 'm-', 'c-'] # Vanilla:0, D-Gan:1, S-Gan:2, W-Gan:3, Info-Gan:4
-style = palette[4]
+[vanilla, DCGan, SGan, WGan, InfoGan] = ['r-', 'g-', 'b-', 'm-', 'c-']
+style = vanilla #update
 
-#Titres, Abscisses et Ordonnées
+#Titres, Abscisses et Ordonnées (update)
 titles = ['Loss Discriminateur', 'Précision Discriminateur', 'Loss Générateur', 'Temps exécution']
 absc = ['Epoch', 'Epoch', 'Epoch', 'Epoch']
-ordo = ['Loss', 'Précision', 'Loss', 'Temps (s)']
+ordo = ['Loss', 'Précision (%)', 'Loss', 'Temps (s)']
 
+#Extraction des données et affichage
 f = open(fileName, mode='r')
 l1 = f.readline().rstrip().rsplit(',')
 print(l1)
 
+#update
 time = []
 epoch = []
 DLoss = []
@@ -30,13 +32,25 @@ GLoss = []
 
 for line in f:
     lsplit = line.rstrip().rsplit(',')
+
+    #update
     time.append(float(lsplit[0]))
     epoch.append(float(lsplit[1]))
     DLoss.append(float(lsplit[2]))
     DAcc.append(float(lsplit[3]))
     GLoss.append(float(lsplit[4]))
+f.close()
+
+def moyennage(donnees, pas) :
+    ret = []
+    for liste in donnees :
+        ret.append([sum(liste[i*pas:(i+1)*pas])/pas for i in range(len(liste)//pas)])
+    return ret
+
+[time, epoch, DLoss, DAcc, GLoss] = moyennage([time, epoch, DLoss, DAcc, GLoss], pasMoyenne) #update
 
 plt.figure
+plt.subplots_adjust(hspace=0.3)
 compt = 0
 
 compt += 1
@@ -72,3 +86,4 @@ plt.ylabel(ordo[compt-1])
 plt.grid()
 
 plt.show()
+        

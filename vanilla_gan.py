@@ -1,4 +1,4 @@
-# Pierre To (1734636), Jérémie Jasmin (1800865), Guillaume Vergnolle
+# Pierre To (1734636), Jérémie Jasmin (1800865), Guillaume Vergnolle (1968693)
 # INF8225 - Projet
 # Base sur : https://github.com/eriklindernoren/Keras-GAN/blob/master/gan/gan.py
 # Base de donnees : https://keras.io/datasets/#cifar10-small-image-classification

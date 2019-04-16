@@ -1,6 +1,6 @@
 # Pierre To (1734636), Jérémie Jasmin (1800865), Guillaume Vergnolle (1968693)
 # INF8225 - Projet
-# Base sur : https://github.com/eriklindernoren/Keras-GAN/blob/master/dcgan/dcgan.py
+# Base sur : https://github.com/eriklindernoren/Keras-GAN/blob/master/wgan_gp/wgan_gp.py
 # Base de donnees : https://keras.io/datasets/#cifar10-small-image-classification
 
 from __future__ import print_function, division
@@ -30,13 +30,14 @@ class RandomWeightedAverage(_Merge):
         alpha = K.random_uniform((32, 1, 1, 1))
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
 
+# Implémentation d'un GAN Wasserstein amélioré
 class WGANGP():
     def __init__(self):
-        self.img_rows = 32
-        self.img_cols = 32
-        self.channels = 3
+        self.img_rows = 32 # Hauteur en pixels des images
+        self.img_cols = 32 # Largeur en pixels des images
+        self.channels = 3 # Nombre de canaux de couleur
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.latent_dim = 100
+        self.latent_dim = 100 # Taille du vecteur latent z (taille de l'entrée du générateur)
 
         self.savePath = 'result/w_gan-gp/'
         if not os.path.exists(self.savePath):
@@ -44,7 +45,7 @@ class WGANGP():
 
         # Fixer les paramètre et l'optimiseur comme recommandé dans le papier
         self.n_critic = 5
-        optimizer = RMSprop(lr=0.00005)
+        optimizer = RMSprop(lr=0.00005) # taux d'aprentissage de 0.00005
 
         # Création du générateur
         self.generator = self.build_generator()
@@ -119,6 +120,8 @@ class WGANGP():
     def wasserstein_loss(self, y_true, y_pred):
         return K.mean(y_true * y_pred)
 
+    # Fonction qui construit le générateur
+    # Fonction d'activation : tanh, ReLU
     def build_generator(self):
 
         model = Sequential()
@@ -147,6 +150,7 @@ class WGANGP():
 
         return Model(noise, img)
 
+    # Fonction qui construit le discriminateur
     def build_critic(self):
 
         model = Sequential()
@@ -181,6 +185,7 @@ class WGANGP():
 
         return Model(img, validity)
 
+    # Entraînement
     def train(self, epochs, batch_size, sample_interval=50):
 
         # Chargement de la base de donnée cifar10
@@ -234,6 +239,7 @@ class WGANGP():
             if epoch % sample_interval == 0:
                 self.sample_images(epoch)
 
+    # Fonction qui crée une image d'échantillon
     def sample_images(self, epoch):
         r, c = 5, 5
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
@@ -256,7 +262,7 @@ class WGANGP():
         fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
         plt.close()
 
-
+# Programme principal
 if __name__ == '__main__':
     wgan = WGANGP()
-    wgan.train(epochs=100000, batch_size=32, sample_interval=100) # epochs: 30000
+    wgan.train(epochs=100000, batch_size=32, sample_interval=200) # epochs: 30000

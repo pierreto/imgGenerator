@@ -2,15 +2,16 @@ import numpy
 import matplotlib.pyplot as plt
 
 #Fichier à ouvrir (update)
-fileName = 'data.csv'
-pasMoyenne = 10
+fileName = 'vanilla.csv'
+pasMoyenne = 50
+pointsMax = 5000
 
 #Format du subplot (update)
 nRow = 2
 nCol = 2
 
 #Palette de couleur à conserver
-[vanilla, DCGan, SGan, WGan, InfoGan] = ['r-', 'g-', 'b-', 'm-', 'c-']
+[vanilla, dcgan, sgan, lsgan, wgan] = ['r-', 'g-', 'b-', 'm-', 'c-']
 style = vanilla #update
 
 #Titres, Abscisses et Ordonnées (update)
@@ -29,6 +30,7 @@ epoch = []
 DLoss = []
 DAcc = []
 GLoss = []
+#DOpAcc = []
 
 for line in f:
     lsplit = line.rstrip().rsplit(',')
@@ -39,15 +41,18 @@ for line in f:
     DLoss.append(float(lsplit[2]))
     DAcc.append(float(lsplit[3]))
     GLoss.append(float(lsplit[4]))
+    #DOpAcc.append(float(lsplit[4]))
 f.close()
 
-def moyennage(donnees, pas) :
+def moyennage(donnees, pas, Emax) :
     ret = []
     for liste in donnees :
-        ret.append([sum(liste[i*pas:(i+1)*pas])/pas for i in range(len(liste)//pas)])
+        listeT = liste[0:Emax+1]
+        ret.append([sum(listeT[i*pas:(i+1)*pas])/pas for i in range(len(listeT)//pas)])
     return ret
 
-[time, epoch, DLoss, DAcc, GLoss] = moyennage([time, epoch, DLoss, DAcc, GLoss], pasMoyenne) #update
+[time, epoch, DLoss, DAcc, GLoss] = moyennage([time, epoch, DLoss, DAcc, GLoss], pasMoyenne, pointsMax) #update
+#[time, epoch, DLoss, DAcc, GLoss, DOpAcc] = moyennage([time, epoch, DLoss, DAcc, GLoss, DOpAcc], pasMoyenne, pointsMax) #update
 
 plt.figure
 plt.subplots_adjust(hspace=0.3)

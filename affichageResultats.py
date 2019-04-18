@@ -2,8 +2,8 @@ import numpy
 import matplotlib.pyplot as plt
 
 #Fichier à ouvrir (update)
-fileName = 'vanilla.csv'
-pasMoyenne = 50
+fileName = 'wgan.csv'
+pasMoyenne = 1
 pointsMax = 5000
 
 #Format du subplot (update)
@@ -12,7 +12,7 @@ nCol = 2
 
 #Palette de couleur à conserver
 [vanilla, dcgan, sgan, lsgan, wgan] = ['r-', 'g-', 'b-', 'm-', 'c-']
-style = vanilla #update
+style = wgan #update
 
 #Titres, Abscisses et Ordonnées (update)
 titles = ['Loss Discriminateur', 'Précision Discriminateur', 'Loss Générateur', 'Temps exécution']

@@ -16,7 +16,11 @@ import numpy as np
 def sample_images(set, epoch):
     r, c = 5, 5
     
-    print(set.shape())
+    print(set.shape)
+
+    savePath = 'result/basic_dogs/'
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)
 
     # Redimensionnement de l'image à 0 - 1
     #gen_imgs = 0.5 * gen_imgs + 0.5
@@ -25,16 +29,13 @@ def sample_images(set, epoch):
     for i in range(r):
         for j in range(c):
 
-            index = random.randint(0,set.shape()[0])
+            index = random.randint(0,set.shape[0])
             img = set[index, :, :, :]
 
-            if self.channels == 1:
-                axs[i,j].imshow(img, cmap='gray')
-            else:
-                axs[i,j].imshow(img)
+            axs[i,j].imshow(img)
             axs[i,j].axis('off')
 
-    fig.savefig(("{0}{1}.png").format(self.savePath, epoch))
+    fig.savefig(("{0}{1}.png").format(savePath, epoch))
     plt.close()
 
 # Programme principal
@@ -46,4 +47,4 @@ if __name__ == '__main__':
     X_train = np.array(X_train[np.argwhere(y_train.squeeze() == 5)].squeeze())
 
     for i in range(0, 5):
-        sample_images(X_train, epoch)
+        sample_images(X_train, i)

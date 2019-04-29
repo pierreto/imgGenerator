@@ -2,7 +2,7 @@ import numpy
 import matplotlib.pyplot as plt
 
 #Fichier à ouvrir (update)
-fileName = 'wgan.csv'
+fileName = 'dcgan.csv'
 pasMoyenne = 1
 pointsMax = 5000
 

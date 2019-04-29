@@ -2,9 +2,9 @@ import numpy
 import matplotlib.pyplot as plt
 
 #Fichier à ouvrir (update)
-filesName = ['vanilla.csv', 'dcgan.csv', 'sgan.csv', 'lsgan.csv', 'wgan.csv']
+filesName = ['vanilla.csv', 'dcgan.csv', 'sgan.csv', 'lsgan.csv']
 styles = ['r-', 'g-', 'b-', 'm-', 'c-']
-pasMoyenne = 10
+pasMoyenne = 50
 pointsMax = 5000
 
 #[time, epoch, DLoss, DAcc, GLoss]
@@ -68,7 +68,7 @@ compt += 1
 plt.subplot(nRow, nCol, compt)
 for ind, loss in enumerate(mulDLoss) :
     plt.plot(mulepoch[ind], loss, styles[ind]) #update
-plt.title("Loss Dénominateur")
+plt.title("Loss Discriminateur")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend(['Vanilla', 'DCGAN', 'SGAN', 'LSGAN', 'WGAN'])
